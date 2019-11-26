@@ -1,6 +1,6 @@
 /*
  * CURRENCY CONVERTER RELOADED
- * Author: <your name here>
+ * Author: <ich>
  * ---------------------------
  *
  * This converts currencies...somehow.
@@ -26,14 +26,49 @@
  *  Das Script soll mindestens drei verschiedene Währungen in beide Richtungen unterstützen
  */
 
+
+const currencies = require('./currencies');
 let args = process.argv.slice(2);
+const request = require('request');
 
-let amount, originalCurrency, targetCurrency;
+request('https://api.exchangeratesapi.io/latest', function (error, response, body) {
+  let amount, originalCurrency, targetCurrency;
+  let bodyObj = JSON.parse(body);
+  for (let currency in bodyObj.rates) {
+    if (currencies.hasOwnProperty(currency)) {
+      currencies[currency].Kurs = bodyObj.rates[currency];
+    } else {
+      currencies[currency] = {}
+      currencies[currency].Kurs = bodyObj.rates[currency];
+    }
+  }
 
-if (args.length < 3) {
-  console.log('Error: Not enough input arguments given!');
-} else {
-  amount = args[0];
-  originalCurrency = args[1];
-  targetCurrency = args[2];
-}
+  if (args.length < 3) {
+    console.log('Error: Not enough input arguments given!');
+  } else if (args.length > 3) { 
+    console.log('Error: Too many input arguments given!');
+  } else if (isNaN(args[0])) {
+    console.log(args[0] + ' is not a number')
+  } else {
+    amount = args[0];
+    originalCurrency = args[1];
+    targetCurrency = args[2];
+
+    if (currencies.hasOwnProperty(originalCurrency) === false || currencies.hasOwnProperty(targetCurrency) === false) {
+      console.log('Error: Given currencies are not supported!');
+    } else {
+      const amountInEur = amount / currencies[originalCurrency].Kurs;
+      const output = amountInEur * currencies[targetCurrency].Kurs;
+      let symbolOG = currencies[originalCurrency].Symbol + ' ';
+      let symbolTG = currencies[targetCurrency].Symbol + ' ';
+      
+      if (symbolOG == undefined + ' ') {
+        symbolOG = ' ';
+      }
+      if (symbolTG == undefined + ' ') {
+        symbolTG = ' ';
+      }
+      console.log(amount + symbolOG + originalCurrency + ' entsprechen ' + output + symbolTG + targetCurrency);
+    }
+  }
+});
